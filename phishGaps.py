@@ -6,8 +6,8 @@ import operator
 
 
 #set these to True to download the html.  No need to download multiple times
-downloadYears = True
-downloadShows = True
+downloadYears = False
+downloadShows = False
 
 findGaps = True
 
@@ -19,8 +19,8 @@ validYears = range(1983,2016)
 #download html of a full year of setlists
 if downloadYears:
     for year in validYears:
-        yearURL = "http://phish.net/setlists/" +str(year) + ".html"
-        os.system("curl " + yearURL + " > " + str(year) + ".html")
+        yearURL = "http://phish.net/setlists/{0}.html".format(year)
+        os.system("curl {0} > {1}.html".format(yearURL, year))
 
 
 #parse individual show links out of year html, and download each show html
@@ -29,10 +29,10 @@ if downloadShows:
 
         #make directory if it doesn't exist yet
         if(str(year) not in os.listdir(".")):
-            os.system("mkdir " + str(year))
+            os.system("mkdir {0}".format(str(year)))
 
         #parse html
-        soup = BeautifulSoup(open(str(year) + ".html"), "lxml")
+        soup = BeautifulSoup(open("{0}.html".format(str(year))), "lxml")
 
         #each setlist is inside a <div class="setlist"> tag
         dateDivs = soup.find_all('div', attrs={'class' : 'setlist'})
@@ -46,20 +46,16 @@ if downloadShows:
                 date = str(link['href']).split("=")[1]
                 setlistLink = str(link['href'])
                 #download an individual show's setlist
-                os.system("curl " + setlistLink + " > ./" + str(year) + "/" + date + ".html")
+                os.system("curl {0} > ./{1}/{2}.html".format(setlistLink, str(year), date))
 
 #iterate through all setlists, extracting gap number
 if findGaps:
     gapDict = {}
 
-    #make an output file to store results
-    out_file = open("gapList.txt", "w")
-
-
     for year in validYears:
 
         #get list of files in each year folder
-        folder = "./" + str(year) + "/*"
+        folder = "./{0}/*".format(str(year))
         fileList = glob.glob(folder)
 
         for fileName in fileList:
@@ -91,12 +87,7 @@ if findGaps:
     #sort all shows by average gap, in descending order
     sorted_gaps = sorted(gapDict.items(), key=operator.itemgetter(1), reverse=True)
 
-    index = 1
-
     #write list to file
-    for show in sorted_gaps:
-        out_file.write(str(index) + ". " + str(show) + "\n")
-        index += 1
-
-    #close file
-    out_file.close()
+    with open("gapList.txt", "w") as out_file:
+        for index, show in enumerate(sorted_gaps):
+            out_file.write("{0}. {1}: {2} shows\n".format(str(index + 1), show[0], show[1]))
